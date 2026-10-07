@@ -32,6 +32,10 @@ public class User {
         return new User(id, email, newHashedPassword, fullName, roleId, createdAt);
     }
 
+    public User withRoleId(RoleId newRoleId) {
+        return new User(id, email, hashedPassword, fullName, newRoleId, createdAt);
+    }
+
     public String getId() { return id; }
     public String getEmail() { return email; }
     public String getHashedPassword() { return hashedPassword; }
