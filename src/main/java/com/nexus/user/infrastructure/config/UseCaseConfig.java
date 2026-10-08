@@ -37,8 +37,10 @@ public class UseCaseConfig {
     public LoginUseCase loginUseCase(UserRepositoryPort userRepositoryPort,
                                       RoleRepositoryPort roleRepositoryPort,
                                       PasswordHasherPort passwordHasherPort,
+                                      ReputationProfileRepositoryPort reputationProfileRepositoryPort,
                                       JwtTokenProvider jwtTokenProvider) {
-        return new LoginUseCase(userRepositoryPort, roleRepositoryPort, passwordHasherPort, jwtTokenProvider);
+        return new LoginUseCase(userRepositoryPort, roleRepositoryPort, passwordHasherPort,
+                reputationProfileRepositoryPort, jwtTokenProvider);
     }
 
     @Bean

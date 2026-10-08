@@ -3,6 +3,7 @@ package com.nexus.user.application.usecase;
 import com.nexus.common.security.JwtTokenProvider;
 import com.nexus.user.application.exception.InvalidCredentialsException;
 import com.nexus.user.application.port.out.PasswordHasherPort;
+import com.nexus.user.application.port.out.ReputationProfileRepositoryPort;
 import com.nexus.user.application.port.out.RoleRepositoryPort;
 import com.nexus.user.application.port.out.UserRepositoryPort;
 import com.nexus.user.domain.model.Role;
@@ -26,6 +27,7 @@ class LoginUseCaseTest {
     private UserRepositoryPort userRepositoryPort;
     private RoleRepositoryPort roleRepositoryPort;
     private PasswordHasherPort passwordHasherPort;
+    private ReputationProfileRepositoryPort reputationProfileRepositoryPort;
     private JwtTokenProvider jwtTokenProvider;
     private LoginUseCase useCase;
 
@@ -34,8 +36,10 @@ class LoginUseCaseTest {
         userRepositoryPort = mock(UserRepositoryPort.class);
         roleRepositoryPort = mock(RoleRepositoryPort.class);
         passwordHasherPort = mock(PasswordHasherPort.class);
+        reputationProfileRepositoryPort = mock(ReputationProfileRepositoryPort.class);
         jwtTokenProvider = mock(JwtTokenProvider.class);
-        useCase = new LoginUseCase(userRepositoryPort, roleRepositoryPort, passwordHasherPort, jwtTokenProvider);
+        useCase = new LoginUseCase(userRepositoryPort, roleRepositoryPort, passwordHasherPort,
+                reputationProfileRepositoryPort, jwtTokenProvider);
     }
 
     @Test
@@ -46,12 +50,32 @@ class LoginUseCaseTest {
         when(passwordHasherPort.matches("longenough", "hashed-pw")).thenReturn(true);
         when(roleRepositoryPort.findById("role-buyer"))
                 .thenReturn(Optional.of(new Role("role-buyer", "BUYER", "Buyer", Set.of("AUTH.LOGIN"))));
-        when(jwtTokenProvider.generateToken(eq("user-1"), eq("BUYER"), anyList())).thenReturn("signed-jwt");
+        when(reputationProfileRepositoryPort.findByUserId("user-1")).thenReturn(Optional.empty());
+        when(jwtTokenProvider.generateToken(eq("user-1"), eq("BUYER"), anyList(), eq("TRUSTED")))
+                .thenReturn("signed-jwt");
 
         LoginResult result = useCase.login(new LoginCommand("alice@example.com", "longenough"));
 
         assertThat(result.token()).isEqualTo("signed-jwt");
         assertThat(result.userId()).isEqualTo("user-1");
+    }
+
+    @Test
+    void login_embedsCallersActualTrustLevelWhenAProfileExists() {
+        User user = User.reconstitute("user-1", "alice@example.com", "hashed-pw", "Alice Nguyen",
+                new RoleId("role-buyer"), java.time.Instant.now());
+        when(userRepositoryPort.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(passwordHasherPort.matches("longenough", "hashed-pw")).thenReturn(true);
+        when(roleRepositoryPort.findById("role-buyer"))
+                .thenReturn(Optional.of(new Role("role-buyer", "BUYER", "Buyer", Set.of("AUTH.LOGIN"))));
+        when(reputationProfileRepositoryPort.findByUserId("user-1")).thenReturn(
+                Optional.of(com.nexus.user.domain.model.ReputationProfile.createDefault("user-1").applyPenalty(20)));
+        when(jwtTokenProvider.generateToken(eq("user-1"), eq("BUYER"), anyList(), eq("LOW")))
+                .thenReturn("signed-jwt");
+
+        LoginResult result = useCase.login(new LoginCommand("alice@example.com", "longenough"));
+
+        assertThat(result.token()).isEqualTo("signed-jwt");
     }
 
     @Test

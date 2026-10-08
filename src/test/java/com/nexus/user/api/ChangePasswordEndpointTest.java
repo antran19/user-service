@@ -63,7 +63,7 @@ class ChangePasswordEndpointTest {
 
     @Test
     void changePassword_succeedsWithValidTokenAndCorrectOldPassword() throws Exception {
-        String token = jwtTokenProvider.generateToken(userId, "BUYER", List.of("PROFILE.CHANGE_PASSWORD"));
+        String token = jwtTokenProvider.generateToken(userId, "BUYER", List.of("PROFILE.CHANGE_PASSWORD"), "TRUSTED");
 
         mockMvc.perform(put("/api/v1/users/me/password")
                         .header("Authorization", "Bearer " + token)
@@ -86,7 +86,7 @@ class ChangePasswordEndpointTest {
 
     @Test
     void changePassword_returns403WhenTokenLacksPrivilege() throws Exception {
-        String token = jwtTokenProvider.generateToken(userId, "BUYER", List.of("PROFILE.VIEW"));
+        String token = jwtTokenProvider.generateToken(userId, "BUYER", List.of("PROFILE.VIEW"), "TRUSTED");
 
         mockMvc.perform(put("/api/v1/users/me/password")
                         .header("Authorization", "Bearer " + token)
@@ -98,7 +98,7 @@ class ChangePasswordEndpointTest {
 
     @Test
     void changePassword_returns401WhenOldPasswordWrong() throws Exception {
-        String token = jwtTokenProvider.generateToken(userId, "BUYER", List.of("PROFILE.CHANGE_PASSWORD"));
+        String token = jwtTokenProvider.generateToken(userId, "BUYER", List.of("PROFILE.CHANGE_PASSWORD"), "TRUSTED");
 
         mockMvc.perform(put("/api/v1/users/me/password")
                         .header("Authorization", "Bearer " + token)
