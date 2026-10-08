@@ -3,12 +3,19 @@ package com.nexus.user.infrastructure.config;
 import com.nexus.common.security.JwtTokenProvider;
 import com.nexus.user.application.port.out.EventPublisherPort;
 import com.nexus.user.application.port.out.PasswordHasherPort;
+import com.nexus.user.application.port.out.RatingRepositoryPort;
+import com.nexus.user.application.port.out.ReputationPenaltyRepositoryPort;
+import com.nexus.user.application.port.out.ReputationProfileRepositoryPort;
 import com.nexus.user.application.port.out.RoleRepositoryPort;
 import com.nexus.user.application.port.out.SellerRequestRepositoryPort;
 import com.nexus.user.application.port.out.UserRepositoryPort;
+import com.nexus.user.application.usecase.ApplyAuctionPaymentTimeoutPenaltyUseCase;
 import com.nexus.user.application.usecase.ChangePasswordUseCase;
+import com.nexus.user.application.usecase.GetReputationUseCase;
+import com.nexus.user.application.usecase.ListReputationPenaltiesUseCase;
 import com.nexus.user.application.usecase.ListSellerRequestsUseCase;
 import com.nexus.user.application.usecase.LoginUseCase;
+import com.nexus.user.application.usecase.RateTransactionUseCase;
 import com.nexus.user.application.usecase.RegisterUserUseCase;
 import com.nexus.user.application.usecase.RequestSellerUpgradeUseCase;
 import com.nexus.user.application.usecase.ReviewSellerRequestUseCase;
@@ -57,5 +64,34 @@ public class UseCaseConfig {
                                                                    UserRepositoryPort userRepositoryPort,
                                                                    RoleRepositoryPort roleRepositoryPort) {
         return new ReviewSellerRequestUseCase(sellerRequestRepositoryPort, userRepositoryPort, roleRepositoryPort);
+    }
+
+    @Bean
+    public RateTransactionUseCase rateTransactionUseCase(RatingRepositoryPort ratingRepositoryPort,
+                                                           ReputationProfileRepositoryPort reputationProfileRepositoryPort,
+                                                           UserRepositoryPort userRepositoryPort,
+                                                           EventPublisherPort eventPublisherPort) {
+        return new RateTransactionUseCase(ratingRepositoryPort, reputationProfileRepositoryPort,
+                userRepositoryPort, eventPublisherPort);
+    }
+
+    @Bean
+    public GetReputationUseCase getReputationUseCase(ReputationProfileRepositoryPort reputationProfileRepositoryPort) {
+        return new GetReputationUseCase(reputationProfileRepositoryPort);
+    }
+
+    @Bean
+    public ListReputationPenaltiesUseCase listReputationPenaltiesUseCase(
+            ReputationPenaltyRepositoryPort reputationPenaltyRepositoryPort) {
+        return new ListReputationPenaltiesUseCase(reputationPenaltyRepositoryPort);
+    }
+
+    @Bean
+    public ApplyAuctionPaymentTimeoutPenaltyUseCase applyAuctionPaymentTimeoutPenaltyUseCase(
+            ReputationProfileRepositoryPort reputationProfileRepositoryPort,
+            ReputationPenaltyRepositoryPort reputationPenaltyRepositoryPort,
+            EventPublisherPort eventPublisherPort) {
+        return new ApplyAuctionPaymentTimeoutPenaltyUseCase(reputationProfileRepositoryPort,
+                reputationPenaltyRepositoryPort, eventPublisherPort);
     }
 }
