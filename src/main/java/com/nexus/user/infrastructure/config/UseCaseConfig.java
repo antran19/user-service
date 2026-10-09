@@ -181,8 +181,9 @@ public class UseCaseConfig {
 
     @Bean
     public ForgotPasswordUseCase forgotPasswordUseCase(UserRepositoryPort userRepositoryPort,
-                                                         PasswordResetTokenRepositoryPort passwordResetTokenRepositoryPort) {
-        return new ForgotPasswordUseCase(userRepositoryPort, passwordResetTokenRepositoryPort);
+                                                         PasswordResetTokenRepositoryPort passwordResetTokenRepositoryPort,
+                                                         EventPublisherPort eventPublisherPort) {
+        return new ForgotPasswordUseCase(userRepositoryPort, passwordResetTokenRepositoryPort, eventPublisherPort);
     }
 
     @Bean

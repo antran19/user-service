@@ -1,6 +1,8 @@
 package com.nexus.user.application.usecase;
 
 import com.nexus.common.core.exception.NotFoundException;
+import com.nexus.common.events.PasswordResetRequestedEvent;
+import com.nexus.user.application.port.out.EventPublisherPort;
 import com.nexus.user.application.port.out.PasswordResetTokenRepositoryPort;
 import com.nexus.user.application.port.out.UserRepositoryPort;
 import com.nexus.user.domain.model.RoleId;
@@ -20,13 +22,15 @@ class ForgotPasswordUseCaseTest {
 
     private UserRepositoryPort userRepositoryPort;
     private PasswordResetTokenRepositoryPort passwordResetTokenRepositoryPort;
+    private EventPublisherPort eventPublisherPort;
     private ForgotPasswordUseCase useCase;
 
     @BeforeEach
     void setUp() {
         userRepositoryPort = mock(UserRepositoryPort.class);
         passwordResetTokenRepositoryPort = mock(PasswordResetTokenRepositoryPort.class);
-        useCase = new ForgotPasswordUseCase(userRepositoryPort, passwordResetTokenRepositoryPort);
+        eventPublisherPort = mock(EventPublisherPort.class);
+        useCase = new ForgotPasswordUseCase(userRepositoryPort, passwordResetTokenRepositoryPort, eventPublisherPort);
     }
 
     @Test
@@ -43,12 +47,27 @@ class ForgotPasswordUseCaseTest {
     }
 
     @Test
+    void requestReset_publishesAPasswordResetRequestedEvent() {
+        User user = User.reconstitute("user-1", "carol@example.com", "hashed", "Carol",
+                new RoleId("role-buyer"), Instant.now(), null);
+        when(userRepositoryPort.findByEmail("carol@example.com")).thenReturn(Optional.of(user));
+
+        String rawToken = useCase.requestReset("carol@example.com");
+
+        verify(eventPublisherPort).publish(argThat(event -> {
+            PasswordResetRequestedEvent e = (PasswordResetRequestedEvent) event;
+            return e.getUserId().equals("user-1") && e.getResetToken().equals(rawToken);
+        }));
+    }
+
+    @Test
     void requestReset_throwsWhenEmailDoesNotExist() {
         when(userRepositoryPort.findByEmail("missing@example.com")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> useCase.requestReset("missing@example.com"))
                 .isInstanceOf(NotFoundException.class);
         verify(passwordResetTokenRepositoryPort, never()).save(any());
+        verify(eventPublisherPort, never()).publish(any());
     }
 
     @Test
@@ -60,5 +79,6 @@ class ForgotPasswordUseCaseTest {
         assertThatThrownBy(() -> useCase.requestReset("carol@example.com"))
                 .isInstanceOf(NotFoundException.class);
         verify(passwordResetTokenRepositoryPort, never()).save(any());
+        verify(eventPublisherPort, never()).publish(any());
     }
 }
