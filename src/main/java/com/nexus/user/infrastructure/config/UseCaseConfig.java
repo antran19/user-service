@@ -1,8 +1,10 @@
 package com.nexus.user.infrastructure.config;
 
 import com.nexus.common.security.JwtTokenProvider;
+import com.nexus.user.application.port.out.BlacklistedTokenRepositoryPort;
 import com.nexus.user.application.port.out.EventPublisherPort;
 import com.nexus.user.application.port.out.PasswordHasherPort;
+import com.nexus.user.application.port.out.PasswordResetTokenRepositoryPort;
 import com.nexus.user.application.port.out.RatingRepositoryPort;
 import com.nexus.user.application.port.out.ReputationPenaltyRepositoryPort;
 import com.nexus.user.application.port.out.ReputationProfileRepositoryPort;
@@ -17,6 +19,7 @@ import com.nexus.user.application.usecase.CreateUserUseCase;
 import com.nexus.user.application.usecase.DeleteRoleUseCase;
 import com.nexus.user.application.usecase.DeleteUserUseCase;
 import com.nexus.user.application.usecase.GetReputationUseCase;
+import com.nexus.user.application.usecase.ForgotPasswordUseCase;
 import com.nexus.user.application.usecase.GetRoleUseCase;
 import com.nexus.user.application.usecase.GetUserUseCase;
 import com.nexus.user.application.usecase.ListReputationPenaltiesUseCase;
@@ -24,9 +27,11 @@ import com.nexus.user.application.usecase.ListRolesUseCase;
 import com.nexus.user.application.usecase.ListSellerRequestsUseCase;
 import com.nexus.user.application.usecase.ListUsersUseCase;
 import com.nexus.user.application.usecase.LoginUseCase;
+import com.nexus.user.application.usecase.LogoutUseCase;
 import com.nexus.user.application.usecase.RateTransactionUseCase;
 import com.nexus.user.application.usecase.RegisterUserUseCase;
 import com.nexus.user.application.usecase.RequestSellerUpgradeUseCase;
+import com.nexus.user.application.usecase.ResetPasswordUseCase;
 import com.nexus.user.application.usecase.ReviewSellerRequestUseCase;
 import com.nexus.user.application.usecase.UpdateRoleUseCase;
 import com.nexus.user.application.usecase.UpdateUserUseCase;
@@ -166,5 +171,24 @@ public class UseCaseConfig {
     @Bean
     public GetRoleUseCase getRoleUseCase(RoleRepositoryPort roleRepositoryPort) {
         return new GetRoleUseCase(roleRepositoryPort);
+    }
+
+    @Bean
+    public LogoutUseCase logoutUseCase(JwtTokenProvider jwtTokenProvider,
+                                        BlacklistedTokenRepositoryPort blacklistedTokenRepositoryPort) {
+        return new LogoutUseCase(jwtTokenProvider, blacklistedTokenRepositoryPort);
+    }
+
+    @Bean
+    public ForgotPasswordUseCase forgotPasswordUseCase(UserRepositoryPort userRepositoryPort,
+                                                         PasswordResetTokenRepositoryPort passwordResetTokenRepositoryPort) {
+        return new ForgotPasswordUseCase(userRepositoryPort, passwordResetTokenRepositoryPort);
+    }
+
+    @Bean
+    public ResetPasswordUseCase resetPasswordUseCase(UserRepositoryPort userRepositoryPort,
+                                                       PasswordResetTokenRepositoryPort passwordResetTokenRepositoryPort,
+                                                       PasswordHasherPort passwordHasherPort) {
+        return new ResetPasswordUseCase(userRepositoryPort, passwordResetTokenRepositoryPort, passwordHasherPort);
     }
 }
