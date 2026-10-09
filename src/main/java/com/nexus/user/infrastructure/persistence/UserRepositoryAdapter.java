@@ -6,6 +6,7 @@ import com.nexus.user.domain.model.User;
 import com.nexus.user.infrastructure.persistence.entity.UserJpaEntity;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -26,7 +27,8 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
                 user.getHashedPassword(),
                 user.getFullName(),
                 UUID.fromString(user.getRoleId().value()),
-                user.getCreatedAt());
+                user.getCreatedAt(),
+                user.getDeletedAt());
         userJpaRepository.save(entity);
         return user;
     }
@@ -41,6 +43,16 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
         return userJpaRepository.findById(UUID.fromString(id)).map(this::toDomain);
     }
 
+    @Override
+    public List<User> findAllNotDeleted() {
+        return userJpaRepository.findByDeletedAtIsNull().stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public boolean existsByRoleId(String roleId) {
+        return userJpaRepository.existsByRoleId(UUID.fromString(roleId));
+    }
+
     private User toDomain(UserJpaEntity entity) {
         return User.reconstitute(
                 entity.getId().toString(),
@@ -48,6 +60,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
                 entity.getHashedPassword(),
                 entity.getFullName(),
                 new RoleId(entity.getRoleId().toString()),
-                entity.getCreatedAt());
+                entity.getCreatedAt(),
+                entity.getDeletedAt());
     }
 }

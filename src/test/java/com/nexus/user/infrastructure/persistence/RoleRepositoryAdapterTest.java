@@ -12,7 +12,10 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -69,5 +72,48 @@ class RoleRepositoryAdapterTest {
     @Test
     void findByCode_returnsEmptyForUnknownCode() {
         assertThat(roleRepositoryAdapter.findByCode("NOT_A_ROLE")).isEmpty();
+    }
+
+    @Test
+    void save_createsNewRoleWithGivenPrivileges() {
+        Role role = new Role(UUID.randomUUID().toString(), "VIEWER_TEST", "Viewer (test)",
+                Set.of("PROFILE.VIEW"));
+
+        roleRepositoryAdapter.save(role);
+
+        Role reloaded = roleRepositoryAdapter.findByCode("VIEWER_TEST").orElseThrow();
+        assertThat(reloaded.name()).isEqualTo("Viewer (test)");
+        assertThat(reloaded.privilegeCodes()).containsExactly("PROFILE.VIEW");
+    }
+
+    @Test
+    void save_updatesPrivilegesOfExistingRole() {
+        Role role = new Role(UUID.randomUUID().toString(), "EDITABLE_TEST", "Editable (test)",
+                Set.of("PROFILE.VIEW"));
+        roleRepositoryAdapter.save(role);
+
+        Role updated = new Role(role.id(), role.code(), "Renamed", Set.of("PROFILE.VIEW", "PROFILE.UPDATE"));
+        roleRepositoryAdapter.save(updated);
+
+        Role reloaded = roleRepositoryAdapter.findById(role.id()).orElseThrow();
+        assertThat(reloaded.name()).isEqualTo("Renamed");
+        assertThat(reloaded.privilegeCodes()).containsExactlyInAnyOrder("PROFILE.VIEW", "PROFILE.UPDATE");
+    }
+
+    @Test
+    void findAll_includesSeededRoles() {
+        List<Role> roles = roleRepositoryAdapter.findAll();
+
+        assertThat(roles).extracting(Role::code).contains("ADMIN", "SELLER", "BUYER", "SUPPORT_STAFF");
+    }
+
+    @Test
+    void deleteById_removesTheRole() {
+        Role role = new Role(UUID.randomUUID().toString(), "DELETE_ME_TEST", "Delete me", Set.of());
+        roleRepositoryAdapter.save(role);
+
+        roleRepositoryAdapter.deleteById(role.id());
+
+        assertThat(roleRepositoryAdapter.findById(role.id())).isEmpty();
     }
 }

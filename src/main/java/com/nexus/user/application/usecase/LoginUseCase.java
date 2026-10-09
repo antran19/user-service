@@ -36,6 +36,12 @@ public class LoginUseCase {
         User user = userRepositoryPort.findByEmail(command.email())
                 .orElseThrow(InvalidCredentialsException::new);
 
+        // A deleted account must behave exactly like a wrong password to the caller --
+        // never reveal that the account existed/was removed.
+        if (user.isDeleted()) {
+            throw new InvalidCredentialsException();
+        }
+
         if (!passwordHasherPort.matches(command.rawPassword(), user.getHashedPassword())) {
             throw new InvalidCredentialsException();
         }

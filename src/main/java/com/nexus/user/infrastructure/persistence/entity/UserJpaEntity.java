@@ -27,16 +27,21 @@ public class UserJpaEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
     protected UserJpaEntity() {
     }
 
-    public UserJpaEntity(UUID id, String email, String hashedPassword, String fullName, UUID roleId, Instant createdAt) {
+    public UserJpaEntity(UUID id, String email, String hashedPassword, String fullName, UUID roleId,
+                          Instant createdAt, Instant deletedAt) {
         this.id = id;
         this.email = email;
         this.hashedPassword = hashedPassword;
         this.fullName = fullName;
         this.roleId = roleId;
         this.createdAt = createdAt;
+        this.deletedAt = deletedAt;
     }
 
     public UUID getId() { return id; }
@@ -45,4 +50,5 @@ public class UserJpaEntity {
     public String getFullName() { return fullName; }
     public UUID getRoleId() { return roleId; }
     public Instant getCreatedAt() { return createdAt; }
+    public Instant getDeletedAt() { return deletedAt; }
 }

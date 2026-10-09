@@ -9,16 +9,27 @@ import com.nexus.user.application.port.out.ReputationProfileRepositoryPort;
 import com.nexus.user.application.port.out.RoleRepositoryPort;
 import com.nexus.user.application.port.out.SellerRequestRepositoryPort;
 import com.nexus.user.application.port.out.UserRepositoryPort;
+import com.nexus.user.application.usecase.AdminChangeUserPasswordUseCase;
 import com.nexus.user.application.usecase.ApplyAuctionPaymentTimeoutPenaltyUseCase;
 import com.nexus.user.application.usecase.ChangePasswordUseCase;
+import com.nexus.user.application.usecase.CreateRoleUseCase;
+import com.nexus.user.application.usecase.CreateUserUseCase;
+import com.nexus.user.application.usecase.DeleteRoleUseCase;
+import com.nexus.user.application.usecase.DeleteUserUseCase;
 import com.nexus.user.application.usecase.GetReputationUseCase;
+import com.nexus.user.application.usecase.GetRoleUseCase;
+import com.nexus.user.application.usecase.GetUserUseCase;
 import com.nexus.user.application.usecase.ListReputationPenaltiesUseCase;
+import com.nexus.user.application.usecase.ListRolesUseCase;
 import com.nexus.user.application.usecase.ListSellerRequestsUseCase;
+import com.nexus.user.application.usecase.ListUsersUseCase;
 import com.nexus.user.application.usecase.LoginUseCase;
 import com.nexus.user.application.usecase.RateTransactionUseCase;
 import com.nexus.user.application.usecase.RegisterUserUseCase;
 import com.nexus.user.application.usecase.RequestSellerUpgradeUseCase;
 import com.nexus.user.application.usecase.ReviewSellerRequestUseCase;
+import com.nexus.user.application.usecase.UpdateRoleUseCase;
+import com.nexus.user.application.usecase.UpdateUserUseCase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -95,5 +106,65 @@ public class UseCaseConfig {
             EventPublisherPort eventPublisherPort) {
         return new ApplyAuctionPaymentTimeoutPenaltyUseCase(reputationProfileRepositoryPort,
                 reputationPenaltyRepositoryPort, eventPublisherPort);
+    }
+
+    @Bean
+    public CreateUserUseCase createUserUseCase(UserRepositoryPort userRepositoryPort,
+                                                RoleRepositoryPort roleRepositoryPort,
+                                                PasswordHasherPort passwordHasherPort,
+                                                EventPublisherPort eventPublisherPort) {
+        return new CreateUserUseCase(userRepositoryPort, roleRepositoryPort, passwordHasherPort, eventPublisherPort);
+    }
+
+    @Bean
+    public UpdateUserUseCase updateUserUseCase(UserRepositoryPort userRepositoryPort,
+                                                RoleRepositoryPort roleRepositoryPort) {
+        return new UpdateUserUseCase(userRepositoryPort, roleRepositoryPort);
+    }
+
+    @Bean
+    public DeleteUserUseCase deleteUserUseCase(UserRepositoryPort userRepositoryPort) {
+        return new DeleteUserUseCase(userRepositoryPort);
+    }
+
+    @Bean
+    public GetUserUseCase getUserUseCase(UserRepositoryPort userRepositoryPort, RoleRepositoryPort roleRepositoryPort) {
+        return new GetUserUseCase(userRepositoryPort, roleRepositoryPort);
+    }
+
+    @Bean
+    public ListUsersUseCase listUsersUseCase(UserRepositoryPort userRepositoryPort, RoleRepositoryPort roleRepositoryPort) {
+        return new ListUsersUseCase(userRepositoryPort, roleRepositoryPort);
+    }
+
+    @Bean
+    public AdminChangeUserPasswordUseCase adminChangeUserPasswordUseCase(UserRepositoryPort userRepositoryPort,
+                                                                          PasswordHasherPort passwordHasherPort) {
+        return new AdminChangeUserPasswordUseCase(userRepositoryPort, passwordHasherPort);
+    }
+
+    @Bean
+    public CreateRoleUseCase createRoleUseCase(RoleRepositoryPort roleRepositoryPort) {
+        return new CreateRoleUseCase(roleRepositoryPort);
+    }
+
+    @Bean
+    public UpdateRoleUseCase updateRoleUseCase(RoleRepositoryPort roleRepositoryPort) {
+        return new UpdateRoleUseCase(roleRepositoryPort);
+    }
+
+    @Bean
+    public DeleteRoleUseCase deleteRoleUseCase(RoleRepositoryPort roleRepositoryPort, UserRepositoryPort userRepositoryPort) {
+        return new DeleteRoleUseCase(roleRepositoryPort, userRepositoryPort);
+    }
+
+    @Bean
+    public ListRolesUseCase listRolesUseCase(RoleRepositoryPort roleRepositoryPort) {
+        return new ListRolesUseCase(roleRepositoryPort);
+    }
+
+    @Bean
+    public GetRoleUseCase getRoleUseCase(RoleRepositoryPort roleRepositoryPort) {
+        return new GetRoleUseCase(roleRepositoryPort);
     }
 }

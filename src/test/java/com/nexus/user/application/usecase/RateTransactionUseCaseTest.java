@@ -27,7 +27,7 @@ class RateTransactionUseCaseTest {
 
     private User ratedUser() {
         return User.reconstitute("rated-1", "rated@example.com", "hash", "Rated User",
-                new RoleId("role-buyer"), java.time.Instant.now());
+                new RoleId("role-buyer"), java.time.Instant.now(), null);
     }
 
     @BeforeEach

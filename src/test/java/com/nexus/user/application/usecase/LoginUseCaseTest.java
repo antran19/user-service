@@ -45,7 +45,7 @@ class LoginUseCaseTest {
     @Test
     void login_returnsTokenForValidCredentials() {
         User user = User.reconstitute("user-1", "alice@example.com", "hashed-pw", "Alice Nguyen",
-                new RoleId("role-buyer"), java.time.Instant.now());
+                new RoleId("role-buyer"), java.time.Instant.now(), null);
         when(userRepositoryPort.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
         when(passwordHasherPort.matches("longenough", "hashed-pw")).thenReturn(true);
         when(roleRepositoryPort.findById("role-buyer"))
@@ -63,7 +63,7 @@ class LoginUseCaseTest {
     @Test
     void login_embedsCallersActualTrustLevelWhenAProfileExists() {
         User user = User.reconstitute("user-1", "alice@example.com", "hashed-pw", "Alice Nguyen",
-                new RoleId("role-buyer"), java.time.Instant.now());
+                new RoleId("role-buyer"), java.time.Instant.now(), null);
         when(userRepositoryPort.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
         when(passwordHasherPort.matches("longenough", "hashed-pw")).thenReturn(true);
         when(roleRepositoryPort.findById("role-buyer"))
@@ -89,7 +89,7 @@ class LoginUseCaseTest {
     @Test
     void login_rejectsWrongPassword() {
         User user = User.reconstitute("user-1", "alice@example.com", "hashed-pw", "Alice Nguyen",
-                new RoleId("role-buyer"), java.time.Instant.now());
+                new RoleId("role-buyer"), java.time.Instant.now(), null);
         when(userRepositoryPort.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
         when(passwordHasherPort.matches("wrong", "hashed-pw")).thenReturn(false);
 

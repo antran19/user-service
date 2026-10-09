@@ -28,7 +28,7 @@ class ChangePasswordUseCaseTest {
         passwordHasherPort = mock(PasswordHasherPort.class);
         useCase = new ChangePasswordUseCase(userRepositoryPort, passwordHasherPort);
         existingUser = User.reconstitute("user-1", "carol@example.com", "hashed-old", "Carol Le",
-                new RoleId("role-buyer"), Instant.now());
+                new RoleId("role-buyer"), Instant.now(), null);
         when(userRepositoryPort.findById("user-1")).thenReturn(Optional.of(existingUser));
     }
 

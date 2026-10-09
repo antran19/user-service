@@ -39,7 +39,7 @@ class RequestSellerUpgradeUseCaseTest {
     @Test
     void requestUpgrade_createsPendingRequestForEligibleBuyer() {
         User buyer = User.reconstitute("user-1", "a@b.com", "hash", "A B",
-                new RoleId("role-buyer"), Instant.now());
+                new RoleId("role-buyer"), Instant.now(), null);
         when(userRepositoryPort.findById("user-1")).thenReturn(Optional.of(buyer));
         when(roleRepositoryPort.findById("role-buyer"))
                 .thenReturn(Optional.of(new Role("role-buyer", "BUYER", "Buyer", Set.of())));
@@ -63,7 +63,7 @@ class RequestSellerUpgradeUseCaseTest {
     @Test
     void requestUpgrade_rejectsWhenUserIsAlreadySeller() {
         User seller = User.reconstitute("user-1", "a@b.com", "hash", "A B",
-                new RoleId("role-seller"), Instant.now());
+                new RoleId("role-seller"), Instant.now(), null);
         when(userRepositoryPort.findById("user-1")).thenReturn(Optional.of(seller));
         when(roleRepositoryPort.findById("role-seller"))
                 .thenReturn(Optional.of(new Role("role-seller", "SELLER", "Seller", Set.of())));
@@ -76,7 +76,7 @@ class RequestSellerUpgradeUseCaseTest {
     @Test
     void requestUpgrade_rejectsWhenAnotherRequestIsAlreadyPending() {
         User buyer = User.reconstitute("user-1", "a@b.com", "hash", "A B",
-                new RoleId("role-buyer"), Instant.now());
+                new RoleId("role-buyer"), Instant.now(), null);
         when(userRepositoryPort.findById("user-1")).thenReturn(Optional.of(buyer));
         when(roleRepositoryPort.findById("role-buyer"))
                 .thenReturn(Optional.of(new Role("role-buyer", "BUYER", "Buyer", Set.of())));

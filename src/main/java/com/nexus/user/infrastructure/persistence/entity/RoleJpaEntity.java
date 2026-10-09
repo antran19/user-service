@@ -27,6 +27,13 @@ public class RoleJpaEntity {
     protected RoleJpaEntity() {
     }
 
+    public RoleJpaEntity(UUID id, String code, String name, Set<PrivilegeJpaEntity> privileges) {
+        this.id = id;
+        this.code = code;
+        this.name = name;
+        this.privileges = privileges;
+    }
+
     public UUID getId() { return id; }
     public String getCode() { return code; }
     public String getName() { return name; }

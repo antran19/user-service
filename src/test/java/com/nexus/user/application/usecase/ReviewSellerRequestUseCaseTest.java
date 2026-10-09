@@ -39,7 +39,7 @@ class ReviewSellerRequestUseCaseTest {
 
         pendingRequest = SellerRequest.create("user-1");
         requestingUser = User.reconstitute("user-1", "a@b.com", "hash", "A B",
-                new RoleId("role-buyer"), Instant.now());
+                new RoleId("role-buyer"), Instant.now(), null);
 
         when(sellerRequestRepositoryPort.findById("req-1")).thenReturn(Optional.of(pendingRequest));
         when(sellerRequestRepositoryPort.save(any(SellerRequest.class))).thenAnswer(inv -> inv.getArgument(0));
