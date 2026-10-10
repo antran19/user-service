@@ -6,6 +6,7 @@ import com.nexus.user.application.port.out.EventPublisherPort;
 import com.nexus.user.application.port.out.PasswordHasherPort;
 import com.nexus.user.application.port.out.PasswordResetTokenRepositoryPort;
 import com.nexus.user.application.port.out.RatingRepositoryPort;
+import com.nexus.user.application.port.out.ReputationAdjustmentRepositoryPort;
 import com.nexus.user.application.port.out.ReputationPenaltyRepositoryPort;
 import com.nexus.user.application.port.out.ReputationProfileRepositoryPort;
 import com.nexus.user.application.port.out.RoleRepositoryPort;
@@ -22,6 +23,8 @@ import com.nexus.user.application.usecase.GetReputationUseCase;
 import com.nexus.user.application.usecase.ForgotPasswordUseCase;
 import com.nexus.user.application.usecase.GetRoleUseCase;
 import com.nexus.user.application.usecase.GetUserUseCase;
+import com.nexus.user.application.usecase.AdminAdjustReputationUseCase;
+import com.nexus.user.application.usecase.ListReputationAdjustmentsUseCase;
 import com.nexus.user.application.usecase.ListReputationPenaltiesUseCase;
 import com.nexus.user.application.usecase.ListRolesUseCase;
 import com.nexus.user.application.usecase.ListSellerRequestsUseCase;
@@ -102,6 +105,19 @@ public class UseCaseConfig {
     public ListReputationPenaltiesUseCase listReputationPenaltiesUseCase(
             ReputationPenaltyRepositoryPort reputationPenaltyRepositoryPort) {
         return new ListReputationPenaltiesUseCase(reputationPenaltyRepositoryPort);
+    }
+
+    @Bean
+    public AdminAdjustReputationUseCase adminAdjustReputationUseCase(
+            ReputationProfileRepositoryPort reputationProfileRepositoryPort,
+            ReputationAdjustmentRepositoryPort reputationAdjustmentRepositoryPort) {
+        return new AdminAdjustReputationUseCase(reputationProfileRepositoryPort, reputationAdjustmentRepositoryPort);
+    }
+
+    @Bean
+    public ListReputationAdjustmentsUseCase listReputationAdjustmentsUseCase(
+            ReputationAdjustmentRepositoryPort reputationAdjustmentRepositoryPort) {
+        return new ListReputationAdjustmentsUseCase(reputationAdjustmentRepositoryPort);
     }
 
     @Bean

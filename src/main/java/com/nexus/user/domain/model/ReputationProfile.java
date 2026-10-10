@@ -42,6 +42,13 @@ public class ReputationProfile {
         return new ReputationProfile(userId, clamp(score - points), totalRatings, ratingSum, Instant.now());
     }
 
+    // Admin manual adjustment (USER.REPUTATION.ADJUST): unlike applyPenalty, delta is signed
+    // -- positive raises the score, negative lowers it -- since an admin override can go
+    // either way, not just downward like an automatic penalty.
+    public ReputationProfile adjust(int delta) {
+        return new ReputationProfile(userId, clamp(score + delta), totalRatings, ratingSum, Instant.now());
+    }
+
     private static int clamp(int value) {
         return Math.max(MIN_SCORE, Math.min(MAX_SCORE, value));
     }

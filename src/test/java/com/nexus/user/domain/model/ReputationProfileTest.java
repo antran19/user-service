@@ -47,6 +47,28 @@ class ReputationProfileTest {
     }
 
     @Test
+    void adjust_withPositiveDelta_increasesScore() {
+        ReputationProfile profile = ReputationProfile.createDefault("user-1").adjust(5);
+
+        assertThat(profile.getScore()).isEqualTo(55);
+    }
+
+    @Test
+    void adjust_withNegativeDelta_decreasesScore() {
+        ReputationProfile profile = ReputationProfile.createDefault("user-1").adjust(-5);
+
+        assertThat(profile.getScore()).isEqualTo(45);
+    }
+
+    @Test
+    void adjust_doesNotChangeRatingFields() {
+        ReputationProfile profile = ReputationProfile.createDefault("user-1").applyRating(5).adjust(-3);
+
+        assertThat(profile.getTotalRatings()).isEqualTo(1);
+        assertThat(profile.averageRating()).isEqualTo(5.0);
+    }
+
+    @Test
     void score_neverGoesBelowZero() {
         ReputationProfile profile = ReputationProfile.createDefault("user-1");
         for (int i = 0; i < 20; i++) {

@@ -27,6 +27,18 @@
 		{
 			"name": "Auction Service",
 			"path": "../auction-service"
+		},
+		{
+			"name": "Notification Service",
+			"path": "../notification-service"
+		},
+		{
+			"name": "Nexus Frontend",
+			"path": "../nexus-frontend"
+		},
+		{
+			"name": "Fulfillment Service",
+			"path": "../fulfillment-service"
 		}
 	],
 	"settings": {}
