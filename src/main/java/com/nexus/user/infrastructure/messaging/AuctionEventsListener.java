@@ -1,10 +1,9 @@
 package com.nexus.user.infrastructure.messaging;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexus.user.application.usecase.ApplyAuctionPaymentTimeoutPenaltyUseCase;
 import com.nexus.common.events.AuctionPaymentTimeoutEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -15,7 +14,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class AuctionEventsListener {
 
-    private static final Logger log = LoggerFactory.getLogger(AuctionEventsListener.class);
 
     private final ObjectMapper objectMapper;
     private final ApplyAuctionPaymentTimeoutPenaltyUseCase applyAuctionPaymentTimeoutPenaltyUseCase;
@@ -26,17 +24,15 @@ public class AuctionEventsListener {
         this.applyAuctionPaymentTimeoutPenaltyUseCase = applyAuctionPaymentTimeoutPenaltyUseCase;
     }
 
+    // Exceptions are NOT caught here on purpose: KafkaErrorHandlingConfig retries them, then
+    // moves the record to the dead-letter topic instead of losing it.
     @KafkaListener(topics = "auction-events")
-    public void onMessage(String rawPayload) {
-        try {
-            String eventType = objectMapper.readTree(rawPayload).path("eventType").asText();
-            if (!"AuctionPaymentTimeout".equals(eventType)) {
-                return;
-            }
-            AuctionPaymentTimeoutEvent event = objectMapper.readValue(rawPayload, AuctionPaymentTimeoutEvent.class);
-            applyAuctionPaymentTimeoutPenaltyUseCase.apply(event.getWinnerId(), event.getAuctionId());
-        } catch (Exception e) {
-            log.error("Failed to process auction-events message: {}", rawPayload, e);
+    public void onMessage(String rawPayload) throws JsonProcessingException {
+        String eventType = objectMapper.readTree(rawPayload).path("eventType").asText();
+        if (!"AuctionPaymentTimeout".equals(eventType)) {
+            return;
         }
+        AuctionPaymentTimeoutEvent event = objectMapper.readValue(rawPayload, AuctionPaymentTimeoutEvent.class);
+        applyAuctionPaymentTimeoutPenaltyUseCase.apply(event.getWinnerId(), event.getAuctionId());
     }
 }
