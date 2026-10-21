@@ -2,6 +2,10 @@ server:
   port: 8081
 
 nexus:
+  outbox:
+    # Rows already published to Kafka are deleted after this many days (unpublished rows never are).
+    retention-days: 7
+    cleanup-interval-ms: 3600000
   security:
     jwt:
       secret: "dev-only-secret-key-change-in-production-min-256-bits-long!!"
