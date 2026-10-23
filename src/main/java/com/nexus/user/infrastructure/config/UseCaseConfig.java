@@ -5,6 +5,7 @@ import com.nexus.user.application.port.out.BlacklistedTokenRepositoryPort;
 import com.nexus.user.application.port.out.EventPublisherPort;
 import com.nexus.user.application.port.out.PasswordHasherPort;
 import com.nexus.user.application.port.out.PasswordResetTokenRepositoryPort;
+import com.nexus.user.application.port.out.RatableTransactionRepositoryPort;
 import com.nexus.user.application.port.out.RatingRepositoryPort;
 import com.nexus.user.application.port.out.ReputationAdjustmentRepositoryPort;
 import com.nexus.user.application.port.out.ReputationPenaltyRepositoryPort;
@@ -32,6 +33,7 @@ import com.nexus.user.application.usecase.ListUsersUseCase;
 import com.nexus.user.application.usecase.LoginUseCase;
 import com.nexus.user.application.usecase.LogoutUseCase;
 import com.nexus.user.application.usecase.RateTransactionUseCase;
+import com.nexus.user.application.usecase.RecordRatableTransactionUseCase;
 import com.nexus.user.application.usecase.RegisterUserUseCase;
 import com.nexus.user.application.usecase.RequestSellerUpgradeUseCase;
 import com.nexus.user.application.usecase.ResetPasswordUseCase;
@@ -91,9 +93,16 @@ public class UseCaseConfig {
     public RateTransactionUseCase rateTransactionUseCase(RatingRepositoryPort ratingRepositoryPort,
                                                            ReputationProfileRepositoryPort reputationProfileRepositoryPort,
                                                            UserRepositoryPort userRepositoryPort,
+                                                           RatableTransactionRepositoryPort ratableTransactionRepositoryPort,
                                                            EventPublisherPort eventPublisherPort) {
         return new RateTransactionUseCase(ratingRepositoryPort, reputationProfileRepositoryPort,
-                userRepositoryPort, eventPublisherPort);
+                userRepositoryPort, ratableTransactionRepositoryPort, eventPublisherPort);
+    }
+
+    @Bean
+    public RecordRatableTransactionUseCase recordRatableTransactionUseCase(
+            RatableTransactionRepositoryPort ratableTransactionRepositoryPort) {
+        return new RecordRatableTransactionUseCase(ratableTransactionRepositoryPort);
     }
 
     @Bean
