@@ -1,6 +1,23 @@
 package com.nexus.user.api.dto.request;
 
+import com.nexus.user.api.validation.PasswordConfirmation;
+import com.nexus.user.api.validation.PasswordsMatch;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
-public record ResetPasswordRequest(@NotBlank String token, @NotBlank String newPassword) {
+@PasswordsMatch(field = "confirmNewPassword")
+public record ResetPasswordRequest(
+        @NotBlank String token,
+        @NotBlank @Size(min = 8, max = 72, message = "Password must be between 8 and 72 characters") String newPassword,
+        @NotBlank String confirmNewPassword) implements PasswordConfirmation {
+
+    @Override
+    public String passwordValue() {
+        return newPassword;
+    }
+
+    @Override
+    public String confirmationValue() {
+        return confirmNewPassword;
+    }
 }

@@ -23,6 +23,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -107,7 +108,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/reset-password")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"token":"raw-reset-token","newPassword":"newlongpassword"}"""))
+                                {"token":"raw-reset-token","newPassword":"newlongpassword","confirmNewPassword":"newlongpassword"}"""))
                 .andExpect(status().isOk());
 
         verify(resetPasswordUseCase).resetPassword("raw-reset-token", "newlongpassword");
@@ -120,8 +121,20 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/reset-password")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"token":"bad-token","newPassword":"newlongpassword"}"""))
+                                {"token":"bad-token","newPassword":"newlongpassword","confirmNewPassword":"newlongpassword"}"""))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error.code").value("INVALID_RESET_TOKEN"));
+    }
+
+    @Test
+    void resetPassword_returns400WhenPasswordsDiffer() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"token":"raw-reset-token","newPassword":"newlongpassword","confirmNewPassword":"another-password"}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.fieldErrors[0].field").value("confirmNewPassword"));
+
+        verifyNoInteractions(resetPasswordUseCase);
     }
 }

@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -59,7 +60,7 @@ class UserControllerTest {
         mockMvc.perform(post("/api/v1/users/register")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"email":"alice@example.com","password":"longenough","fullName":"Alice Nguyen"}"""))
+                                {"email":"alice@example.com","password":"longenough","confirmPassword":"longenough","fullName":"Alice Nguyen"}"""))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.email").value("alice@example.com"));
@@ -73,7 +74,7 @@ class UserControllerTest {
         mockMvc.perform(post("/api/v1/users/register")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"email":"alice@example.com","password":"longenough","fullName":"Alice Nguyen"}"""))
+                                {"email":"alice@example.com","password":"longenough","confirmPassword":"longenough","fullName":"Alice Nguyen"}"""))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("EMAIL_ALREADY_REGISTERED"));
     }
@@ -83,7 +84,7 @@ class UserControllerTest {
         mockMvc.perform(post("/api/v1/users/register")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"email":"","password":"longenough","fullName":"Alice Nguyen"}"""))
+                                {"email":"","password":"longenough","confirmPassword":"longenough","fullName":"Alice Nguyen"}"""))
                 .andExpect(status().isBadRequest());
     }
 
@@ -143,5 +144,40 @@ class UserControllerTest {
                         .content("""
                                 {"newPassword":"longenough"}"""))
                 .andExpect(status().isOk());
+    }
+
+    // The repeat password is checked on the server, not only by the front end.
+    @Test
+    void register_returns400WithFieldErrorWhenPasswordsDiffer() throws Exception {
+        mockMvc.perform(post("/api/v1/users/register")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"email":"alice@example.com","password":"longenough","confirmPassword":"different1","fullName":"Alice Nguyen"}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.error.fieldErrors[0].field").value("confirmPassword"))
+                .andExpect(jsonPath("$.error.fieldErrors[0].message").value("Passwords do not match"));
+
+        verifyNoInteractions(registerUserUseCase);
+    }
+
+    @Test
+    void register_returns400WhenConfirmPasswordIsMissing() throws Exception {
+        mockMvc.perform(post("/api/v1/users/register")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"email":"alice@example.com","password":"longenough","fullName":"Alice Nguyen"}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.fieldErrors[0].field").value("confirmPassword"));
+    }
+
+    @Test
+    void register_returns400WhenPasswordIsShorterThanEight() throws Exception {
+        mockMvc.perform(post("/api/v1/users/register")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"email":"alice@example.com","password":"short12","confirmPassword":"short12","fullName":"Alice Nguyen"}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.fieldErrors[0].field").value("password"));
     }
 }

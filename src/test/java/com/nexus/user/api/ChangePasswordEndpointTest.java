@@ -69,7 +69,7 @@ class ChangePasswordEndpointTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"oldPassword":"oldpassword","newPassword":"newlongpassword"}"""))
+                                {"oldPassword":"oldpassword","newPassword":"newlongpassword","confirmNewPassword":"newlongpassword"}"""))
                 .andExpect(status().isOk());
     }
 
@@ -78,7 +78,7 @@ class ChangePasswordEndpointTest {
         mockMvc.perform(put("/api/v1/users/me/password")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"oldPassword":"oldpassword","newPassword":"newlongpassword"}"""))
+                                {"oldPassword":"oldpassword","newPassword":"newlongpassword","confirmNewPassword":"newlongpassword"}"""))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
@@ -92,7 +92,7 @@ class ChangePasswordEndpointTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"oldPassword":"oldpassword","newPassword":"newlongpassword"}"""))
+                                {"oldPassword":"oldpassword","newPassword":"newlongpassword","confirmNewPassword":"newlongpassword"}"""))
                 .andExpect(status().isForbidden());
     }
 
@@ -104,7 +104,20 @@ class ChangePasswordEndpointTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"oldPassword":"wrongpassword","newPassword":"newlongpassword"}"""))
+                                {"oldPassword":"wrongpassword","newPassword":"newlongpassword","confirmNewPassword":"newlongpassword"}"""))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void changePassword_returns400WhenNewPasswordsDiffer() throws Exception {
+        String token = jwtTokenProvider.generateToken(userId, "BUYER", List.of("PROFILE.CHANGE_PASSWORD"), "TRUSTED");
+
+        mockMvc.perform(put("/api/v1/users/me/password")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"oldPassword":"oldpassword","newPassword":"newlongpassword","confirmNewPassword":"another-password"}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.fieldErrors[0].field").value("confirmNewPassword"));
     }
 }
