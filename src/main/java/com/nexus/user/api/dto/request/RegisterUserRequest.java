@@ -1,5 +1,6 @@
 package com.nexus.user.api.dto.request;
 
+import com.nexus.user.api.validation.MaxUtf8Bytes;
 import com.nexus.user.api.validation.PasswordConfirmation;
 import com.nexus.user.api.validation.PasswordsMatch;
 import jakarta.validation.constraints.Email;
@@ -10,7 +11,7 @@ import jakarta.validation.constraints.Size;
 @PasswordsMatch
 public record RegisterUserRequest(
         @NotBlank @Email @Size(max = 255) String email,
-        @NotBlank @Size(min = 8, max = 72, message = "Password must be between 8 and 72 characters") String password,
+        @NotBlank @Size(min = 8, max = 72, message = "Password must be between 8 and 72 characters") @MaxUtf8Bytes String password,
         @NotBlank String confirmPassword,
         @NotBlank @Size(max = 255) String fullName) implements PasswordConfirmation {
 

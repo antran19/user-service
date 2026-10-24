@@ -108,4 +108,61 @@ class PasswordRequestsValidationTest {
         assertThat(errors(new AdminChangePasswordRequest("longenough"))).isEmpty();
         assertThat(errors(new AdminChangePasswordRequest("short"))).containsOnlyKeys("newPassword");
     }
+
+    // ---- 72 BYTES, not 72 characters (BCrypt)
+
+    // "ạ" is 3 bytes in UTF-8: 24 of them are exactly 72 bytes, 25 are 75.
+    @Test
+    void password_withAccents_isLimitedByBytesNotByCharacters() {
+        String atTheLimit = "ạ".repeat(24);
+        String overTheLimit = "ạ".repeat(25);
+
+        assertThat(errors(register(atTheLimit, atTheLimit))).isEmpty();
+        assertThat(errors(register(overTheLimit, overTheLimit))).containsOnlyKeys("password");
+        assertThat(errors(register(overTheLimit, overTheLimit)).get("password")).contains("72 bytes");
+    }
+
+    @Test
+    void password_ofManyAccentedWordsThatIsShortInCharacters_isStillRejectedWhenOver72Bytes() {
+        String thirtyChars = "Mật khẩu của tôi rất là dài nè"; // 30 characters, 40+ bytes: fine
+        String fiftyChars = "Mật khẩu tiếng Việt có dấu rất là dài để thử giới hạn"; // 50 characters, over 72 bytes
+
+        assertThat(errors(register(thirtyChars, thirtyChars))).isEmpty();
+        assertThat(fiftyChars.length()).isLessThan(73);
+        assertThat(fiftyChars.getBytes(java.nio.charset.StandardCharsets.UTF_8).length).isGreaterThan(72);
+        assertThat(errors(register(fiftyChars, fiftyChars))).containsOnlyKeys("password");
+    }
+
+    @Test
+    void theByteRule_appliesToChangeResetAndAdminSettingToo() {
+        String tooManyBytes = "ạ".repeat(25);
+
+        assertThat(errors(new ChangePasswordRequest("oldpassword", tooManyBytes, tooManyBytes))).containsKey("newPassword");
+        assertThat(errors(new ResetPasswordRequest("token", tooManyBytes, tooManyBytes))).containsKey("newPassword");
+        assertThat(errors(new AdminChangePasswordRequest(tooManyBytes))).containsOnlyKeys("newPassword");
+    }
+
+    @Test
+    void adminCreateUser_hasThePasswordRuleToo() {
+        assertThat(errors(new com.nexus.user.api.dto.request.CreateUserRequest("a@b.com", "short", "Name", "BUYER")))
+                .containsOnlyKeys("password");
+        assertThat(errors(new com.nexus.user.api.dto.request.CreateUserRequest("a@b.com", "longenough", "Name", "BUYER"))).isEmpty();
+        assertThat(errors(new com.nexus.user.api.dto.request.CreateUserRequest("a@b.com", "ạ".repeat(25), "Name", "BUYER")))
+                .containsOnlyKeys("password");
+    }
+
+    // Records what the encoder itself does past 72 bytes, so the reason for the rule is on file.
+    @Test
+    void theEncoderItself_behaviourBeyond72Bytes() {
+        org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder encoder =
+                new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+        String longPassword = "ạ".repeat(30); // 90 bytes
+        try {
+            String hash = encoder.encode(longPassword);
+            // Not rejected: only the first 72 bytes count, so a different tail still matches.
+            assertThat(encoder.matches("ạ".repeat(24) + "something else", hash)).isTrue();
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).containsIgnoringCase("72");
+        }
+    }
 }
