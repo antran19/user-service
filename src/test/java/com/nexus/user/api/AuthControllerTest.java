@@ -91,16 +91,37 @@ class AuthControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // The reset code is sent by email only. If the response carried it, anyone who knows an
+    // address could take over that account; and if the answer differed for unknown addresses,
+    // the endpoint would reveal which emails are registered.
     @Test
-    void forgotPassword_returns200WithResetToken() throws Exception {
-        when(forgotPasswordUseCase.requestReset("carol@example.com")).thenReturn("raw-reset-token");
-
+    void forgotPassword_returns200WithAGenericMessage_andNoResetToken() throws Exception {
         mockMvc.perform(post("/api/v1/auth/forgot-password")
                         .contentType(APPLICATION_JSON)
                         .content("""
                                 {"email":"carol@example.com"}"""))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.resetToken").value("raw-reset-token"));
+                .andExpect(jsonPath("$.data.message").value(
+                        "If an account exists for that email, a password reset code has been sent to it."))
+                .andExpect(jsonPath("$.data.resetToken").doesNotExist());
+
+        verify(forgotPasswordUseCase).requestReset("carol@example.com");
+    }
+
+    @Test
+    void forgotPassword_answersTheSameForAnAddressThatIsNotRegistered() throws Exception {
+        // For an unknown address the use case just does nothing (it neither throws nor returns).
+        String registered = mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"email\":\"carol@example.com\"}"))
+                .andReturn().getResponse().getContentAsString();
+        String unknown = mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"email\":\"nobody@example.com\"}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        org.assertj.core.api.Assertions.assertThat(unknown).isEqualTo(registered);
     }
 
     @Test

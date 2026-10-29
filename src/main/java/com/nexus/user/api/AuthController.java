@@ -48,8 +48,8 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<ForgotPasswordResponse>> forgotPassword(
             @Valid @RequestBody ForgotPasswordRequest request) {
-        String resetToken = forgotPasswordUseCase.requestReset(request.email());
-        return ResponseEntity.ok(ApiResponse.ok(new ForgotPasswordResponse(resetToken)));
+        forgotPasswordUseCase.requestReset(request.email());
+        return ResponseEntity.ok(ApiResponse.ok(ForgotPasswordResponse.generic()));
     }
 
     @PostMapping("/reset-password")
