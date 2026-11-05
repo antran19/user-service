@@ -3,6 +3,7 @@ package com.nexus.user.infrastructure.persistence.entity;
 import jakarta.persistence.*;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -30,11 +31,23 @@ public class UserJpaEntity {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    private String phone;
+
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
+
+    @Column(name = "terms_accepted_at")
+    private Instant termsAcceptedAt;
+
+    @Column(name = "escrow_acknowledged_at")
+    private Instant escrowAcknowledgedAt;
+
     protected UserJpaEntity() {
     }
 
     public UserJpaEntity(UUID id, String email, String hashedPassword, String fullName, UUID roleId,
-                          Instant createdAt, Instant deletedAt) {
+                          Instant createdAt, Instant deletedAt, String phone, LocalDate birthDate,
+                          Instant termsAcceptedAt, Instant escrowAcknowledgedAt) {
         this.id = id;
         this.email = email;
         this.hashedPassword = hashedPassword;
@@ -42,6 +55,10 @@ public class UserJpaEntity {
         this.roleId = roleId;
         this.createdAt = createdAt;
         this.deletedAt = deletedAt;
+        this.phone = phone;
+        this.birthDate = birthDate;
+        this.termsAcceptedAt = termsAcceptedAt;
+        this.escrowAcknowledgedAt = escrowAcknowledgedAt;
     }
 
     public UUID getId() { return id; }
@@ -51,4 +68,8 @@ public class UserJpaEntity {
     public UUID getRoleId() { return roleId; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getDeletedAt() { return deletedAt; }
+    public String getPhone() { return phone; }
+    public LocalDate getBirthDate() { return birthDate; }
+    public Instant getTermsAcceptedAt() { return termsAcceptedAt; }
+    public Instant getEscrowAcknowledgedAt() { return escrowAcknowledgedAt; }
 }

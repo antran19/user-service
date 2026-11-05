@@ -29,7 +29,7 @@ class PasswordRequestsValidationTest {
     }
 
     private static RegisterUserRequest register(String password, String confirm) {
-        return new RegisterUserRequest("alice@example.com", password, confirm, "Alice Nguyen");
+        return new RegisterUserRequest("alice@example.com", password, confirm, "Alice Nguyen", null, null, true, true);
     }
 
     @Test
@@ -78,9 +78,9 @@ class PasswordRequestsValidationTest {
     @Test
     void register_overlongEmailOrName_isRejected() {
         String longText = "x".repeat(256);
-        assertThat(errors(new RegisterUserRequest(longText + "@example.com", "longenough", "longenough", "Alice")))
+        assertThat(errors(new RegisterUserRequest(longText + "@example.com", "longenough", "longenough", "Alice", null, null, true, true)))
                 .containsKey("email");
-        assertThat(errors(new RegisterUserRequest("alice@example.com", "longenough", "longenough", longText)))
+        assertThat(errors(new RegisterUserRequest("alice@example.com", "longenough", "longenough", longText, null, null, true, true)))
                 .containsKey("fullName");
     }
 

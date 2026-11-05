@@ -1,5 +1,6 @@
 package com.nexus.user.application.usecase;
 
+import com.nexus.common.core.exception.ValidationException;
 import com.nexus.common.events.UserRegisteredEvent;
 import com.nexus.user.application.exception.DuplicateEmailException;
 import com.nexus.user.application.port.out.EventPublisherPort;
@@ -11,6 +12,7 @@ import com.nexus.user.domain.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.Set;
 
@@ -46,7 +48,7 @@ class RegisterUserUseCaseTest {
         when(userRepositoryPort.findByEmail("alice@example.com")).thenReturn(Optional.empty());
 
         UserRegistrationResult result = useCase.register(
-                new RegisterUserCommand("alice@example.com", "longenough", "Alice Nguyen"));
+                new RegisterUserCommand("alice@example.com", "longenough", "Alice Nguyen", null, null, true, true));
 
         assertThat(result.email()).isEqualTo("alice@example.com");
         assertThat(result.fullName()).isEqualTo("Alice Nguyen");
@@ -65,8 +67,59 @@ class RegisterUserUseCaseTest {
                 .thenReturn(Optional.of(mock(User.class)));
 
         assertThatThrownBy(() -> useCase.register(
-                new RegisterUserCommand("alice@example.com", "longenough", "Alice Nguyen")))
+                new RegisterUserCommand("alice@example.com", "longenough", "Alice Nguyen", null, null, true, true)))
                 .isInstanceOf(DuplicateEmailException.class);
+
+        verify(userRepositoryPort, never()).save(any());
+    }
+
+    @Test
+    void register_storesThePhoneBirthDateAndTheMomentOfConsent() {
+        when(userRepositoryPort.findByEmail("alice@example.com")).thenReturn(Optional.empty());
+
+        useCase.register(new RegisterUserCommand("alice@example.com", "longenough", "Alice Nguyen",
+                "0901 234 567", LocalDate.of(1995, 6, 15), true, true));
+
+        verify(userRepositoryPort).save(argThat(u ->
+                "0901234567".equals(u.getPhone())
+                        && LocalDate.of(1995, 6, 15).equals(u.getBirthDate())
+                        && u.getTermsAcceptedAt() != null
+                        && u.getEscrowAcknowledgedAt() != null));
+    }
+
+    @Test
+    void register_withoutTheTermsConsent_isRejectedAndNothingIsSaved() {
+        assertThatThrownBy(() -> useCase.register(new RegisterUserCommand("alice@example.com", "longenough",
+                "Alice Nguyen", null, null, false, true)))
+                .isInstanceOf(ValidationException.class);
+
+        verify(userRepositoryPort, never()).save(any());
+        verify(eventPublisherPort, never()).publish(any());
+    }
+
+    @Test
+    void register_withoutTheEscrowConsent_isRejected() {
+        assertThatThrownBy(() -> useCase.register(new RegisterUserCommand("alice@example.com", "longenough",
+                "Alice Nguyen", null, null, true, false)))
+                .isInstanceOf(ValidationException.class);
+
+        verify(userRepositoryPort, never()).save(any());
+    }
+
+    @Test
+    void register_aMinor_isRejectedAndNothingIsSaved() {
+        assertThatThrownBy(() -> useCase.register(new RegisterUserCommand("alice@example.com", "longenough",
+                "Alice Nguyen", null, LocalDate.now().minusYears(16), true, true)))
+                .isInstanceOf(ValidationException.class);
+
+        verify(userRepositoryPort, never()).save(any());
+    }
+
+    @Test
+    void register_anInvalidPhone_isRejected() {
+        assertThatThrownBy(() -> useCase.register(new RegisterUserCommand("alice@example.com", "longenough",
+                "Alice Nguyen", "123", null, true, true)))
+                .isInstanceOf(ValidationException.class);
 
         verify(userRepositoryPort, never()).save(any());
     }

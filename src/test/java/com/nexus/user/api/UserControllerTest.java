@@ -20,9 +20,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -60,7 +63,7 @@ class UserControllerTest {
         mockMvc.perform(post("/api/v1/users/register")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"email":"alice@example.com","password":"longenough","confirmPassword":"longenough","fullName":"Alice Nguyen"}"""))
+                                {"email":"alice@example.com","password":"longenough","confirmPassword":"longenough","fullName":"Alice Nguyen","termsAccepted":true,"escrowAcknowledged":true}"""))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.email").value("alice@example.com"));
@@ -74,7 +77,7 @@ class UserControllerTest {
         mockMvc.perform(post("/api/v1/users/register")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"email":"alice@example.com","password":"longenough","confirmPassword":"longenough","fullName":"Alice Nguyen"}"""))
+                                {"email":"alice@example.com","password":"longenough","confirmPassword":"longenough","fullName":"Alice Nguyen","termsAccepted":true,"escrowAcknowledged":true}"""))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("EMAIL_ALREADY_REGISTERED"));
     }
@@ -84,7 +87,7 @@ class UserControllerTest {
         mockMvc.perform(post("/api/v1/users/register")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"email":"","password":"longenough","confirmPassword":"longenough","fullName":"Alice Nguyen"}"""))
+                                {"email":"","password":"longenough","confirmPassword":"longenough","fullName":"Alice Nguyen","termsAccepted":true,"escrowAcknowledged":true}"""))
                 .andExpect(status().isBadRequest());
     }
 
@@ -152,7 +155,7 @@ class UserControllerTest {
         mockMvc.perform(post("/api/v1/users/register")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"email":"alice@example.com","password":"longenough","confirmPassword":"different1","fullName":"Alice Nguyen"}"""))
+                                {"email":"alice@example.com","password":"longenough","confirmPassword":"different1","fullName":"Alice Nguyen","termsAccepted":true,"escrowAcknowledged":true}"""))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.error.fieldErrors[0].field").value("confirmPassword"))
@@ -166,7 +169,7 @@ class UserControllerTest {
         mockMvc.perform(post("/api/v1/users/register")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"email":"alice@example.com","password":"longenough","fullName":"Alice Nguyen"}"""))
+                                {"email":"alice@example.com","password":"longenough","fullName":"Alice Nguyen","termsAccepted":true,"escrowAcknowledged":true}"""))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.fieldErrors[0].field").value("confirmPassword"));
     }
@@ -176,8 +179,64 @@ class UserControllerTest {
         mockMvc.perform(post("/api/v1/users/register")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"email":"alice@example.com","password":"short12","confirmPassword":"short12","fullName":"Alice Nguyen"}"""))
+                                {"email":"alice@example.com","password":"short12","confirmPassword":"short12","fullName":"Alice Nguyen","termsAccepted":true,"escrowAcknowledged":true}"""))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.fieldErrors[0].field").value("password"));
+    }
+
+    // ---- the details of the sign-up form
+
+    private static final String FULL_BODY_START =
+            "{\"email\":\"alice@example.com\",\"password\":\"longenough\",\"confirmPassword\":\"longenough\",\"fullName\":\"Alice Nguyen\"";
+
+    @Test
+    void register_passesThePhoneBirthDateAndConsentsToTheUseCase() throws Exception {
+        when(registerUserUseCase.register(any()))
+                .thenReturn(new UserRegistrationResult("user-1", "alice@example.com", "Alice Nguyen"));
+
+        mockMvc.perform(post("/api/v1/users/register")
+                        .contentType(APPLICATION_JSON)
+                        .content(FULL_BODY_START + ",\"phone\":\"0901234567\",\"birthDate\":\"1995-06-15\","
+                                + "\"termsAccepted\":true,\"escrowAcknowledged\":true}"))
+                .andExpect(status().isCreated());
+
+        verify(registerUserUseCase).register(argThat(c -> "0901234567".equals(c.phone())
+                && LocalDate.of(1995, 6, 15).equals(c.birthDate()) && c.termsAccepted() && c.escrowAcknowledged()));
+    }
+
+    @Test
+    void register_returns400WhenTheTermsAreNotAccepted() throws Exception {
+        mockMvc.perform(post("/api/v1/users/register")
+                        .contentType(APPLICATION_JSON)
+                        .content(FULL_BODY_START + ",\"termsAccepted\":false,\"escrowAcknowledged\":true}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.error.fieldErrors[0].field").value("termsAccepted"));
+
+        verifyNoInteractions(registerUserUseCase);
+    }
+
+    @Test
+    void register_returns400WhenTheConsentsAreMissing() throws Exception {
+        mockMvc.perform(post("/api/v1/users/register")
+                        .contentType(APPLICATION_JSON)
+                        .content(FULL_BODY_START + "}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.fieldErrors[?(@.field == 'termsAccepted')]").exists())
+                .andExpect(jsonPath("$.error.fieldErrors[?(@.field == 'escrowAcknowledged')]").exists());
+
+        verifyNoInteractions(registerUserUseCase);
+    }
+
+    @Test
+    void register_returns400WithTheFieldWhenTheUseCaseRejectsTheBirthDate() throws Exception {
+        when(registerUserUseCase.register(any())).thenThrow(new com.nexus.common.core.exception.ValidationException(
+                java.util.List.of(new com.nexus.common.core.FieldError("birthDate", "You must be at least 18 years old to join"))));
+
+        mockMvc.perform(post("/api/v1/users/register")
+                        .contentType(APPLICATION_JSON)
+                        .content(FULL_BODY_START + ",\"birthDate\":\"2015-01-01\",\"termsAccepted\":true,\"escrowAcknowledged\":true}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.fieldErrors[0].field").value("birthDate"));
     }
 }

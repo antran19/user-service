@@ -1,6 +1,7 @@
 package com.nexus.user.infrastructure.persistence;
 
 import com.nexus.user.application.port.out.UserRepositoryPort;
+import com.nexus.user.domain.model.RegistrationDetails;
 import com.nexus.user.domain.model.RoleId;
 import com.nexus.user.domain.model.User;
 import com.nexus.user.infrastructure.persistence.entity.UserJpaEntity;
@@ -28,7 +29,11 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
                 user.getFullName(),
                 UUID.fromString(user.getRoleId().value()),
                 user.getCreatedAt(),
-                user.getDeletedAt());
+                user.getDeletedAt(),
+                user.getPhone(),
+                user.getBirthDate(),
+                user.getTermsAcceptedAt(),
+                user.getEscrowAcknowledgedAt());
         userJpaRepository.save(entity);
         return user;
     }
@@ -61,6 +66,8 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
                 entity.getFullName(),
                 new RoleId(entity.getRoleId().toString()),
                 entity.getCreatedAt(),
-                entity.getDeletedAt());
+                entity.getDeletedAt(),
+                new RegistrationDetails(entity.getPhone(), entity.getBirthDate(),
+                        entity.getTermsAcceptedAt(), entity.getEscrowAcknowledgedAt()));
     }
 }

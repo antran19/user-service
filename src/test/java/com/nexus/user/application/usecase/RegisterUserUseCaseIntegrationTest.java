@@ -1,5 +1,6 @@
 package com.nexus.user.application.usecase;
 
+import com.nexus.common.core.exception.ValidationException;
 import com.nexus.user.application.port.out.EventPublisherPort;
 import com.nexus.user.infrastructure.persistence.OutboxJpaRepository;
 import com.nexus.user.infrastructure.persistence.UserJpaRepository;
@@ -11,11 +12,15 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -56,10 +61,13 @@ class RegisterUserUseCaseIntegrationTest {
     @Autowired
     private OutboxJpaRepository outboxJpaRepository;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @Test
     void register_persistsBothTheUserAndAnUnpublishedOutboxRow() {
         UserRegistrationResult result = registerUserUseCase.register(
-                new RegisterUserCommand("dave.pham@example.com", "longenough", "Dave Pham"));
+                new RegisterUserCommand("dave.pham@example.com", "longenough", "Dave Pham", null, null, true, true));
 
         assertThat(userJpaRepository.findByEmail("dave.pham@example.com")).isPresent();
 
@@ -70,6 +78,44 @@ class RegisterUserUseCaseIntegrationTest {
                     assertThat(row.getPublishedAt()).isNull();
                     assertThat(row.getPayload()).contains("dave.pham@example.com");
                 });
+    }
+
+    @Test
+    void register_storesThePhoneBirthDateAndConsentsInTheDatabase() {
+        registerUserUseCase.register(new RegisterUserCommand("frank.le@example.com", "longenough", "Frank Le",
+                "+84 901 234 567", LocalDate.of(1990, 3, 20), true, true));
+
+        var saved = userJpaRepository.findByEmail("frank.le@example.com").orElseThrow();
+        assertThat(saved.getPhone()).isEqualTo("+84901234567");
+        assertThat(saved.getBirthDate()).isEqualTo(LocalDate.of(1990, 3, 20));
+        assertThat(saved.getTermsAcceptedAt()).isNotNull();
+        assertThat(saved.getEscrowAcknowledgedAt()).isNotNull();
+    }
+
+    @Test
+    void register_withoutConsent_storesNothing() {
+        assertThatThrownBy(() -> registerUserUseCase.register(new RegisterUserCommand("gina.ho@example.com",
+                "longenough", "Gina Ho", null, null, false, false)))
+                .isInstanceOf(ValidationException.class);
+
+        assertThat(userJpaRepository.findByEmail("gina.ho@example.com")).isEmpty();
+    }
+
+    @Test
+    void theDatabaseItselfRefusesAPhoneInTheWrongFormat() {
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                "INSERT INTO users (id, email, hashed_password, full_name, role_id, phone) "
+                        + "VALUES (gen_random_uuid(), 'bad.phone@example.com', 'x', 'Bad Phone', (SELECT id FROM roles LIMIT 1), '12345')"))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("chk_users_phone_format");
+    }
+
+    @Test
+    void theDatabaseAcceptsAnAccountWithoutAnyOfTheNewDetails() {
+        jdbcTemplate.update("INSERT INTO users (id, email, hashed_password, full_name, role_id) "
+                + "VALUES (gen_random_uuid(), 'old.account@example.com', 'x', 'Old Account', (SELECT id FROM roles LIMIT 1))");
+
+        assertThat(userJpaRepository.findByEmail("old.account@example.com")).isPresent();
     }
 
     /**
@@ -91,7 +137,7 @@ class RegisterUserUseCaseIntegrationTest {
         @Test
         void register_rollsBackTheUserSaveWhenTheOutboxWriteThrows() {
             assertThatThrownBy(() -> registerUserUseCase.register(
-                    new RegisterUserCommand("erin.vo@example.com", "longenough", "Erin Vo")))
+                    new RegisterUserCommand("erin.vo@example.com", "longenough", "Erin Vo", null, null, true, true)))
                     .isInstanceOf(RuntimeException.class)
                     .hasMessageContaining("simulated outbox failure");
 
