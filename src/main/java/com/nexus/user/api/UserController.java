@@ -6,7 +6,9 @@ import com.nexus.user.api.dto.request.AdminChangePasswordRequest;
 import com.nexus.user.api.dto.request.ChangePasswordRequest;
 import com.nexus.user.api.dto.request.CreateUserRequest;
 import com.nexus.user.api.dto.request.RegisterUserRequest;
+import com.nexus.user.api.dto.request.UpdateMyProfileRequest;
 import com.nexus.user.api.dto.request.UpdateUserRequest;
+import com.nexus.user.api.dto.response.ProfileResponse;
 import com.nexus.user.api.dto.response.UserAdminResponse;
 import com.nexus.user.api.dto.response.UserResponse;
 import com.nexus.user.api.mapper.UserApiMapper;
@@ -15,9 +17,11 @@ import com.nexus.user.application.usecase.ChangePasswordCommand;
 import com.nexus.user.application.usecase.ChangePasswordUseCase;
 import com.nexus.user.application.usecase.CreateUserUseCase;
 import com.nexus.user.application.usecase.DeleteUserUseCase;
+import com.nexus.user.application.usecase.GetMyProfileUseCase;
 import com.nexus.user.application.usecase.GetUserUseCase;
 import com.nexus.user.application.usecase.ListUsersUseCase;
 import com.nexus.user.application.usecase.RegisterUserUseCase;
+import com.nexus.user.application.usecase.UpdateMyProfileUseCase;
 import com.nexus.user.application.usecase.UpdateUserUseCase;
 import com.nexus.user.application.usecase.UserRegistrationResult;
 import com.nexus.user.application.usecase.UserResult;
@@ -42,13 +46,16 @@ public class UserController {
     private final GetUserUseCase getUserUseCase;
     private final ListUsersUseCase listUsersUseCase;
     private final AdminChangeUserPasswordUseCase adminChangeUserPasswordUseCase;
+    private final GetMyProfileUseCase getMyProfileUseCase;
+    private final UpdateMyProfileUseCase updateMyProfileUseCase;
 
     public UserController(RegisterUserUseCase registerUserUseCase, UserApiMapper mapper,
                            ChangePasswordUseCase changePasswordUseCase, CreateUserUseCase createUserUseCase,
                            UpdateUserUseCase updateUserUseCase,
                            DeleteUserUseCase deleteUserUseCase, GetUserUseCase getUserUseCase,
                            ListUsersUseCase listUsersUseCase,
-                           AdminChangeUserPasswordUseCase adminChangeUserPasswordUseCase) {
+                           AdminChangeUserPasswordUseCase adminChangeUserPasswordUseCase,
+                           GetMyProfileUseCase getMyProfileUseCase, UpdateMyProfileUseCase updateMyProfileUseCase) {
         this.registerUserUseCase = registerUserUseCase;
         this.mapper = mapper;
         this.changePasswordUseCase = changePasswordUseCase;
@@ -58,12 +65,31 @@ public class UserController {
         this.getUserUseCase = getUserUseCase;
         this.listUsersUseCase = listUsersUseCase;
         this.adminChangeUserPasswordUseCase = adminChangeUserPasswordUseCase;
+        this.getMyProfileUseCase = getMyProfileUseCase;
+        this.updateMyProfileUseCase = updateMyProfileUseCase;
     }
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody RegisterUserRequest request) {
         UserRegistrationResult result = registerUserUseCase.register(mapper.toCommand(request));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(mapper.toResponse(result)));
+    }
+
+    // The account is always the one in the token, never an id from the request.
+    @RequiresPrivilege("PROFILE.VIEW")
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<ProfileResponse>> myProfile(Authentication authentication) {
+        String userId = (String) authentication.getPrincipal();
+        return ResponseEntity.ok(ApiResponse.ok(mapper.toResponse(getMyProfileUseCase.get(userId))));
+    }
+
+    @RequiresPrivilege("PROFILE.UPDATE")
+    @PutMapping("/me")
+    public ResponseEntity<ApiResponse<ProfileResponse>> updateMyProfile(Authentication authentication,
+                                                                          @Valid @RequestBody UpdateMyProfileRequest request) {
+        String userId = (String) authentication.getPrincipal();
+        return ResponseEntity.ok(ApiResponse.ok(mapper.toResponse(
+                updateMyProfileUseCase.update(userId, request.fullName(), request.phone()))));
     }
 
     @RequiresPrivilege("PROFILE.CHANGE_PASSWORD")

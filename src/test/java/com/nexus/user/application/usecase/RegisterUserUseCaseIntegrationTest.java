@@ -64,6 +64,12 @@ class RegisterUserUseCaseIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private GetMyProfileUseCase getMyProfileUseCase;
+
+    @Autowired
+    private UpdateMyProfileUseCase updateMyProfileUseCase;
+
     @Test
     void register_persistsBothTheUserAndAnUnpublishedOutboxRow() {
         UserRegistrationResult result = registerUserUseCase.register(
@@ -99,6 +105,37 @@ class RegisterUserUseCaseIntegrationTest {
                 .isInstanceOf(ValidationException.class);
 
         assertThat(userJpaRepository.findByEmail("gina.ho@example.com")).isEmpty();
+    }
+
+    @Test
+    void myProfile_isReadBackAfterSignUp_andUpdatingItChangesOnlyTheNameAndPhone() {
+        UserRegistrationResult registered = registerUserUseCase.register(new RegisterUserCommand("hana.vu@example.com",
+                "longenough", "Hana Vu", "0901234567", LocalDate.of(1992, 8, 9), true, true));
+
+        ProfileResult before = getMyProfileUseCase.get(registered.userId());
+        assertThat(before.roleCode()).isEqualTo("BUYER");
+        assertThat(before.phone()).isEqualTo("0901234567");
+        assertThat(before.birthDate()).isEqualTo(LocalDate.of(1992, 8, 9));
+
+        ProfileResult after = updateMyProfileUseCase.update(registered.userId(), "Hana T. Vu", "+84 988 777 666");
+
+        assertThat(after.fullName()).isEqualTo("Hana T. Vu");
+        assertThat(after.phone()).isEqualTo("+84988777666");
+        var stored = userJpaRepository.findByEmail("hana.vu@example.com").orElseThrow();
+        assertThat(stored.getPhone()).isEqualTo("+84988777666");
+        assertThat(stored.getBirthDate()).isEqualTo(LocalDate.of(1992, 8, 9));
+        assertThat(stored.getTermsAcceptedAt()).isEqualTo(before.termsAcceptedAt());
+        assertThat(stored.getEmail()).isEqualTo("hana.vu@example.com");
+    }
+
+    @Test
+    void myProfile_aBlankPhoneClearsItInTheDatabase() {
+        UserRegistrationResult registered = registerUserUseCase.register(new RegisterUserCommand("ivy.do@example.com",
+                "longenough", "Ivy Do", "0901234567", null, true, true));
+
+        updateMyProfileUseCase.update(registered.userId(), "Ivy Do", "");
+
+        assertThat(userJpaRepository.findByEmail("ivy.do@example.com").orElseThrow().getPhone()).isNull();
     }
 
     @Test

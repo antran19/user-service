@@ -53,6 +53,11 @@ public class User {
         return new User(id, email, hashedPassword, fullName, newRoleId, createdAt, deletedAt, details);
     }
 
+    public User withPhone(String newPhone) {
+        return new User(id, email, hashedPassword, fullName, roleId, createdAt, deletedAt,
+                new RegistrationDetails(newPhone, details.birthDate(), details.termsAcceptedAt(), details.escrowAcknowledgedAt()));
+    }
+
     public User withFullName(String newFullName) {
         return new User(id, email, hashedPassword, newFullName, roleId, createdAt, deletedAt, details);
     }

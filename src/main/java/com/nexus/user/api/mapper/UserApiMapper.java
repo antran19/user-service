@@ -5,6 +5,7 @@ import com.nexus.user.api.dto.response.AdjustmentResponse;
 import com.nexus.user.api.dto.response.PenaltyResponse;
 import com.nexus.user.api.dto.response.RatingResponse;
 import com.nexus.user.api.dto.response.ReputationResponse;
+import com.nexus.user.api.dto.response.ProfileResponse;
 import com.nexus.user.api.dto.response.RoleResponse;
 import com.nexus.user.api.dto.response.SellerRequestResponse;
 import com.nexus.user.api.dto.response.UserAdminResponse;
@@ -12,6 +13,7 @@ import com.nexus.user.api.dto.response.UserResponse;
 import com.nexus.user.application.usecase.AdjustmentResult;
 import com.nexus.user.application.usecase.PenaltyResult;
 import com.nexus.user.application.usecase.RatingResult;
+import com.nexus.user.application.usecase.ProfileResult;
 import com.nexus.user.application.usecase.RegisterUserCommand;
 import com.nexus.user.application.usecase.ReputationResult;
 import com.nexus.user.application.usecase.RoleResult;
@@ -41,6 +43,8 @@ public interface UserApiMapper {
     AdjustmentResponse toResponse(AdjustmentResult result);
 
     UserAdminResponse toResponse(UserResult result);
+
+    ProfileResponse toResponse(ProfileResult result);
 
     RoleResponse toResponse(RoleResult result);
 }

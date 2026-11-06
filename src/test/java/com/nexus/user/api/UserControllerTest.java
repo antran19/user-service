@@ -43,6 +43,8 @@ class UserControllerTest {
     @Autowired private JwtTokenProvider jwtTokenProvider;
 
     @MockBean private RegisterUserUseCase registerUserUseCase;
+    @MockBean private GetMyProfileUseCase getMyProfileUseCase;
+    @MockBean private UpdateMyProfileUseCase updateMyProfileUseCase;
     @MockBean private ChangePasswordUseCase changePasswordUseCase;
     @MockBean private CreateUserUseCase createUserUseCase;
     @MockBean private UpdateUserUseCase updateUserUseCase;
@@ -238,5 +240,83 @@ class UserControllerTest {
                         .content(FULL_BODY_START + ",\"birthDate\":\"2015-01-01\",\"termsAccepted\":true,\"escrowAcknowledged\":true}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.fieldErrors[0].field").value("birthDate"));
+    }
+
+    // ---- my profile (GET and PUT /api/v1/users/me)
+
+    private static ProfileResult aProfile() {
+        return new ProfileResult("admin-1", "alice@example.com", "Alice Nguyen", "ADMIN", "0901234567",
+                LocalDate.of(1995, 6, 15), Instant.parse("2026-11-05T03:00:00Z"), Instant.parse("2026-11-05T03:00:00Z"),
+                Instant.parse("2026-10-01T00:00:00Z"));
+    }
+
+    @Test
+    void myProfile_returns401WithoutToken() throws Exception {
+        mockMvc.perform(get("/api/v1/users/me")).andExpect(status().isUnauthorized());
+        verifyNoInteractions(getMyProfileUseCase);
+    }
+
+    @Test
+    void myProfile_returns403WithoutThePrivilege() throws Exception {
+        mockMvc.perform(get("/api/v1/users/me").header("Authorization", "Bearer " + tokenWith("USER.VIEW")))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(getMyProfileUseCase);
+    }
+
+    @Test
+    void myProfile_returnsTheAccountOfTheToken() throws Exception {
+        when(getMyProfileUseCase.get("admin-1")).thenReturn(aProfile());
+
+        mockMvc.perform(get("/api/v1/users/me").header("Authorization", "Bearer " + tokenWith("PROFILE.VIEW")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.email").value("alice@example.com"))
+                .andExpect(jsonPath("$.data.phone").value("0901234567"))
+                .andExpect(jsonPath("$.data.birthDate").value("1995-06-15"))
+                .andExpect(jsonPath("$.data.termsAcceptedAt").exists())
+                .andExpect(jsonPath("$.data.hashedPassword").doesNotExist())
+                .andExpect(jsonPath("$.data.password").doesNotExist());
+    }
+
+    @Test
+    void updateMyProfile_returns403WithoutThePrivilege() throws Exception {
+        mockMvc.perform(put("/api/v1/users/me").header("Authorization", "Bearer " + tokenWith("PROFILE.VIEW"))
+                        .contentType(APPLICATION_JSON).content("{\"fullName\":\"Alice\"}"))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(updateMyProfileUseCase);
+    }
+
+    @Test
+    void updateMyProfile_changesOnlyTheNameAndPhoneOfTheTokenAccount() throws Exception {
+        when(updateMyProfileUseCase.update(any(), any(), any())).thenReturn(aProfile());
+
+        // Anything else in the body (an e-mail, a role, a birth date) is ignored.
+        mockMvc.perform(put("/api/v1/users/me").header("Authorization", "Bearer " + tokenWith("PROFILE.UPDATE"))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"fullName\":\"Alice N\",\"phone\":\"0988777666\",\"email\":\"evil@example.com\","
+                                + "\"roleCode\":\"ADMIN\",\"birthDate\":\"2010-01-01\"}"))
+                .andExpect(status().isOk());
+
+        verify(updateMyProfileUseCase).update("admin-1", "Alice N", "0988777666");
+    }
+
+    @Test
+    void updateMyProfile_returns400WhenTheNameIsBlank() throws Exception {
+        mockMvc.perform(put("/api/v1/users/me").header("Authorization", "Bearer " + tokenWith("PROFILE.UPDATE"))
+                        .contentType(APPLICATION_JSON).content("{\"fullName\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.error.fieldErrors[0].field").value("fullName"));
+        verifyNoInteractions(updateMyProfileUseCase);
+    }
+
+    @Test
+    void updateMyProfile_returns400WithThePhoneFieldWhenTheUseCaseRejectsIt() throws Exception {
+        when(updateMyProfileUseCase.update(any(), any(), any())).thenThrow(new com.nexus.common.core.exception.ValidationException(
+                java.util.List.of(new com.nexus.common.core.FieldError("phone", "Phone must be a Vietnamese number"))));
+
+        mockMvc.perform(put("/api/v1/users/me").header("Authorization", "Bearer " + tokenWith("PROFILE.UPDATE"))
+                        .contentType(APPLICATION_JSON).content("{\"fullName\":\"Alice\",\"phone\":\"123\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.fieldErrors[0].field").value("phone"));
     }
 }

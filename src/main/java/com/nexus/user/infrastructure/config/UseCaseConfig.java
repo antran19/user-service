@@ -23,6 +23,7 @@ import com.nexus.user.application.usecase.DeleteUserUseCase;
 import com.nexus.user.application.usecase.GetReputationUseCase;
 import com.nexus.user.application.usecase.ForgotPasswordUseCase;
 import com.nexus.user.application.usecase.GetRoleUseCase;
+import com.nexus.user.application.usecase.GetMyProfileUseCase;
 import com.nexus.user.application.usecase.GetUserUseCase;
 import com.nexus.user.application.usecase.AdminAdjustReputationUseCase;
 import com.nexus.user.application.usecase.ListReputationAdjustmentsUseCase;
@@ -38,6 +39,7 @@ import com.nexus.user.application.usecase.RegisterUserUseCase;
 import com.nexus.user.application.usecase.RequestSellerUpgradeUseCase;
 import com.nexus.user.application.usecase.ResetPasswordUseCase;
 import com.nexus.user.application.usecase.ReviewSellerRequestUseCase;
+import com.nexus.user.application.usecase.UpdateMyProfileUseCase;
 import com.nexus.user.application.usecase.UpdateRoleUseCase;
 import com.nexus.user.application.usecase.UpdateUserUseCase;
 import org.springframework.context.annotation.Bean;
@@ -155,6 +157,16 @@ public class UseCaseConfig {
     @Bean
     public DeleteUserUseCase deleteUserUseCase(UserRepositoryPort userRepositoryPort) {
         return new DeleteUserUseCase(userRepositoryPort);
+    }
+
+    @Bean
+    public GetMyProfileUseCase getMyProfileUseCase(UserRepositoryPort userRepositoryPort, RoleRepositoryPort roleRepositoryPort) {
+        return new GetMyProfileUseCase(userRepositoryPort, roleRepositoryPort);
+    }
+
+    @Bean
+    public UpdateMyProfileUseCase updateMyProfileUseCase(UserRepositoryPort userRepositoryPort, RoleRepositoryPort roleRepositoryPort) {
+        return new UpdateMyProfileUseCase(userRepositoryPort, roleRepositoryPort);
     }
 
     @Bean

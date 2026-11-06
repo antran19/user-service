@@ -20,7 +20,26 @@ public final class RegistrationDetailsPolicy {
     private static final Pattern VIETNAMESE_PHONE = Pattern.compile("^(0\\d{9}|\\+84\\d{9})$");
     private static final LocalDate EARLIEST_BIRTH_DATE = LocalDate.of(1900, 1, 1);
 
+    private static final String PHONE_MESSAGE = "Phone must be a Vietnamese number (0xxxxxxxxx or +84xxxxxxxxx)";
+
     private RegistrationDetailsPolicy() {
+    }
+
+    // The phone rule on its own, for the profile update: blank means "no phone" (null); anything
+    // else must be a Vietnamese number and comes back without spaces, dots or dashes.
+    public static String normalizePhone(String phone) {
+        String normalized = stripSeparators(phone);
+        if (normalized != null && !VIETNAMESE_PHONE.matcher(normalized).matches()) {
+            throw new ValidationException(List.of(new FieldError("phone", PHONE_MESSAGE)));
+        }
+        return normalized;
+    }
+
+    private static String stripSeparators(String phone) {
+        if (phone == null || phone.isBlank()) {
+            return null;
+        }
+        return SEPARATORS.matcher(phone.trim()).replaceAll("");
     }
 
     // phone and birthDate are optional, but checked when given. The two consents are required.
@@ -28,13 +47,10 @@ public final class RegistrationDetailsPolicy {
                                                boolean escrowAcknowledged, Instant now, LocalDate today) {
         List<FieldError> errors = new ArrayList<>();
 
-        String normalizedPhone = null;
-        if (phone != null && !phone.isBlank()) {
-            normalizedPhone = SEPARATORS.matcher(phone.trim()).replaceAll("");
-            if (!VIETNAMESE_PHONE.matcher(normalizedPhone).matches()) {
-                errors.add(new FieldError("phone", "Phone must be a Vietnamese number (0xxxxxxxxx or +84xxxxxxxxx)"));
-                normalizedPhone = null;
-            }
+        String normalizedPhone = stripSeparators(phone);
+        if (normalizedPhone != null && !VIETNAMESE_PHONE.matcher(normalizedPhone).matches()) {
+            errors.add(new FieldError("phone", PHONE_MESSAGE));
+            normalizedPhone = null;
         }
 
         if (birthDate != null) {
